@@ -1,0 +1,17 @@
+{
+  "name": "loan-service-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "implicitDependencies": ["loan-service"],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
+      "options": {
+        "jestConfig": "apps/loan-service-e2e/jest.config.cts",
+        "passWithNoTests": true
+      },
+      "dependsOn": ["loan-service:build", "loan-service:serve"]
+    }
+  }
+}

@@ -35,7 +35,8 @@
       },
       "exclude": [
         "apps/identity-service-e2e/**/*",
-        "apps/inventory-service-e2e/**/*"
+        "apps/inventory-service-e2e/**/*",
+        "apps/loan-service-e2e/**/*"
       ]
     },
     {
