@@ -16,12 +16,31 @@ jobs:
   validate-and-push:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        service: [
-          identity-service, loan-service, inventory-service, 
-          feedback-service, penalty-service, maintenance-service,
-          audit-service, notification-service
-        ]
+        include:
+          # GRUPO 1: Los que SÍ están en la carpeta apps/
+          - service: identity-service
+            path: apps/identity-service
+          - service: loan-service
+            path: apps/loan-service
+          - service: inventory-service
+            path: apps/inventory-service
+         
+          # GRUPO 2: Los que están en la raíz
+          - service: feedback-service
+            path: feedback-service 
+          - service: notification-service
+            path: notification-service
+          - service: maintenance-service
+            path: maintenance-service
+          - service: penalty-service  
+            path: penalty-service
+          - service: dashboard-service
+            path: dashboard-service
+          - service: api-gateway
+            path: api-gateway
+          - service: audit-service    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -82,12 +101,12 @@ jobs:
           IMAGE_TAG: latest
         run: |
           REPO_NAME=plms-${{ matrix.service }}
-          # Nota: Usamos el Dockerfile relativo a la raíz
-          docker build -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG -f apps/${{ matrix.service }}/Dockerfile .
+          
+          docker build -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG -f ${{ matrix.service }}/Dockerfile .
           docker push $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG
 
   # ------------------------------------------------------------------
-  # JOB 2: DESPLEGAR EN CUENTA 2 (CORE SERVICES)
+  # JOB 2: DESPLEGAR EN CUENTA 2 -CORE SERVICES
   # ------------------------------------------------------------------
   deploy-core:
     needs: validate-and-push
