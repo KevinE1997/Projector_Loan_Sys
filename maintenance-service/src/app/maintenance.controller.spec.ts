@@ -12,7 +12,7 @@ describe('MaintenanceController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
-    resolveTicket: jest.fn(), // Método común en mantenimiento
+    resolveTicket: jest.fn(), 
   };
 
   beforeEach(async () => {
