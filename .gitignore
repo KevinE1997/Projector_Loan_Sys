@@ -99,3 +99,4 @@ Thumbs.db
 # --- Nx Build Cache ---
 .nx/cache
 .nx/workspace-data
+vite.config.*.timestamp*

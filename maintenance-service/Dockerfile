@@ -1,6 +1,6 @@
-# apps/audit-service/Dockerfile
+# apps/maintenance-service/Dockerfile
 
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
