@@ -41,6 +41,7 @@ jobs:
           - service: api-gateway
             path: api-gateway
           - service: audit-service    
+            path: audit-service
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
