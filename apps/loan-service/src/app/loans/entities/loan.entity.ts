@@ -34,7 +34,7 @@ export class Loan {
   status: LoanStatus;
 
   @Column({ nullable: true })
-  observations: string; // "Delivered without HDMI cable", etc.
+  observations: string; // "Delivered without HDMI cable"
 
   @CreateDateColumn()
   createdAt: Date;
