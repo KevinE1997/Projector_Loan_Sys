@@ -5,10 +5,24 @@ import { FeedbackService } from './feedback.service';
 describe('FeedbackController', () => {
   let controller: FeedbackController;
 
+  // Mock del Servicio
+  const mockFeedbackService = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FeedbackController],
-      providers: [FeedbackService],
+      providers: [
+        {
+          provide: FeedbackService,
+          useValue: mockFeedbackService,
+        },
+      ],
     }).compile();
 
     controller = module.get<FeedbackController>(FeedbackController);

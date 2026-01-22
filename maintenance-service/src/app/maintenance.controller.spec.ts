@@ -5,10 +5,25 @@ import { MaintenanceService } from './maintenance.service';
 describe('MaintenanceController', () => {
   let controller: MaintenanceController;
 
+  // Mock del Servicio
+  const mockMaintenanceService = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    resolveTicket: jest.fn(), // Método común en mantenimiento
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MaintenanceController],
-      providers: [MaintenanceService],
+      providers: [
+        {
+          provide: MaintenanceService,
+          useValue: mockMaintenanceService,
+        },
+      ],
     }).compile();
 
     controller = module.get<MaintenanceController>(MaintenanceController);

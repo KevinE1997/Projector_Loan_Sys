@@ -9,11 +9,14 @@ import { InjectRepository } from '@nestjs/typeorm/dist/common/typeorm.decorators
 export class ProjectorsService {
   constructor(
     @InjectRepository(Projector)
-    private readonly projectorRepository: Repository<Projector>,)
-    {}
+    private readonly projectorRepository: Repository<Projector>,) { }
 
-  async create(createProjectorDto: CreateProjectorDto) {
-    return this.projectorRepository.save(createProjectorDto);
+  async create(createProjectorDto: CreateProjectorDto){
+
+    const projector = this.projectorRepository.create(createProjectorDto as any);
+
+
+    return this.projectorRepository.save(projector);
   }
 
   async findAll() {
@@ -35,7 +38,7 @@ export class ProjectorsService {
   async markAsLoaned(projectorId: string) {
     // Find the projector
     const projector = await this.projectorRepository.findOneBy({ id: projectorId });
-    
+
     if (!projector) {
       console.log(`Error: Projector ${projectorId} not found for loan.`);
       return;
@@ -43,7 +46,7 @@ export class ProjectorsService {
 
     // Change status
     projector.status = ProjectorStatus.LOANED;
-    
+
     // Save
     await this.projectorRepository.save(projector);
     console.log(`Projector ${projector.id} marked as LOANED.`);
