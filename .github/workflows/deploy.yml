@@ -28,13 +28,13 @@ jobs:
         with:
           fetch-depth: 0 # Importante para que Nx detecte cambios (affected)
 
-      # 1. INSTALAR PNPM (Paso Crítico que faltaba o fallaba)
+      # 1. INSTALAR PNPM
       - name: Setup PNPM
         uses: pnpm/action-setup@v2
         with:
-          version: 8 # O la versión que uses (ej. 9)
+          version: 10
 
-      # 2. INSTALAR NODE.JS (Configurado para usar caché de pnpm)
+      # 2. INSTALAR NODE.JS
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
