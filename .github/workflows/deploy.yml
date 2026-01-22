@@ -1,17 +1,18 @@
-name: PLMS Master Pipeline
+name: PLMS Master Pipeline (PNPM + Nx)
 
 on:
   push:
     branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
   AWS_REGION: us-east-1
   ECR_REGISTRY_URL: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  # Importante para Nx:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }} # (Opcional si usas Nx Cloud)
 
 jobs:
-  # ------------------------------------------------------------------
-  # JOB 1: VALIDAR, CONSTRUIR Y SUBIR IMÁGENES
-  # ------------------------------------------------------------------
   validate-and-push:
     runs-on: ubuntu-latest
     strategy:
@@ -24,21 +25,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Importante para que Nx detecte cambios (affected)
 
-      # USAMOS NPM (Node Package Manager) en lugar de PNPM
+      # 1. INSTALAR PNPM (Paso Crítico que faltaba o fallaba)
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8 # O la versión que uses (ej. 9)
+
+      # 2. INSTALAR NODE.JS (Configurado para usar caché de pnpm)
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
+          cache: 'pnpm'
 
+      # 3. INSTALAR DEPENDENCIAS (Usando tu pnpm-lock.yaml)
       - name: Install Dependencies
-        run: npm ci # 'ci' es más rápido y seguro para entornos limpios
+        run: pnpm install --frozen-lockfile
 
-      # --- ETAPA DE CALIDAD (Primero probamos, luego construimos) ---
+      # --- ETAPA DE CALIDAD (Nx + PNPM) ---
       
-      # Como usamos una matrix, solo corremos lint/test del servicio actual
-      # para no repetir los tests de TODOS los servicios 8 veces.
       - name: Lint ${{ matrix.service }}
         run: npx nx lint ${{ matrix.service }}
 
@@ -64,14 +72,12 @@ jobs:
           IMAGE_TAG: latest
         run: |
           REPO_NAME=plms-${{ matrix.service }}
-          # Construimos la imagen
+          # Nota: Usamos el Dockerfile relativo a la raíz
           docker build -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG -f apps/${{ matrix.service }}/Dockerfile .
-          # La subimos
           docker push $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG
 
   # ------------------------------------------------------------------
   # JOB 2: DESPLEGAR EN CUENTA 2 (CORE SERVICES)
-  # Se ejecuta solo si 'validate-and-push' termina exitosamente
   # ------------------------------------------------------------------
   deploy-core:
     needs: validate-and-push
@@ -85,28 +91,26 @@ jobs:
           key: ${{ secrets.CORE_SSH_KEY }}
           envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
           script: |
-            # Variables para Login
             export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             export AWS_REGION=us-east-1
             
-            # Login Docker
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
-            # --- Despliegue Identity ---
+            # Identity
             docker pull $REGISTRY/plms-identity-service:latest
             docker stop identity-service || true
             docker rm identity-service || true
             docker run -d --name identity-service -p 3000:3000 --env-file .env $REGISTRY/plms-identity-service:latest
 
-            # --- Despliegue Inventory ---
+            # Inventory
             docker pull $REGISTRY/plms-inventory-service:latest
             docker stop inventory-service || true
             docker rm inventory-service || true
             docker run -d --name inventory-service -p 3002:3002 --env-file .env $REGISTRY/plms-inventory-service:latest
 
-            # --- Despliegue Loan ---
+            # Loan
             docker pull $REGISTRY/plms-loan-service:latest
             docker stop loan-service || true
             docker rm loan-service || true
@@ -134,25 +138,25 @@ jobs:
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
-            # --- Despliegue Notification ---
+            # Notification
             docker pull $REGISTRY/plms-notification-service:latest
             docker stop notification-service || true
             docker rm notification-service || true
             docker run -d --name notification-service -p 3006:3006 --env-file .env $REGISTRY/plms-notification-service:latest
 
-            # --- Despliegue Feedback ---
+            # Feedback
             docker pull $REGISTRY/plms-feedback-service:latest
             docker stop feedback-service || true
             docker rm feedback-service || true
             docker run -d --name feedback-service -p 3008:3008 --env-file .env $REGISTRY/plms-feedback-service:latest
             
-            # --- Despliegue Maintenance ---
+            # Maintenance
             docker pull $REGISTRY/plms-maintenance-service:latest
             docker stop maintenance-service || true
             docker rm maintenance-service || true
             docker run -d --name maintenance-service -p 3010:3010 --env-file .env $REGISTRY/plms-maintenance-service:latest
 
-            # --- Despliegue Penalty ---
+            # Penalty
             docker pull $REGISTRY/plms-penalty-service:latest
             docker stop penalty-service || true
             docker rm penalty-service || true
