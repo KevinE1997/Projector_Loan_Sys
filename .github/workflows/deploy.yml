@@ -66,6 +66,15 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+    
+      - name: Debug File System
+        run: |
+          echo "Listando carpetas en apps/:"
+          ls -F apps/
+          
+          echo "Buscando Dockerfile en ${{ matrix.service }}:"
+          ls -l apps/${{ matrix.service }}/Dockerfile || echo "NO ENCONTRADO"
+
 
       - name: Build and Push Docker Image
         env:
