@@ -36,7 +36,14 @@
       "exclude": [
         "apps/identity-service-e2e/**/*",
         "apps/inventory-service-e2e/**/*",
-        "apps/loan-service-e2e/**/*"
+        "apps/loan-service-e2e/**/*",
+        "notification-service-e2e/**/*",
+        "api-gateway-e2e/**/*",
+        "feedback-service-e2e/**/*",
+        "maintenance-service-e2e/**/*",
+        "audit-service-e2e/**/*",
+        "dashboard-service-e2e/**/*",
+        "penalty-service-e2e/**/*"
       ]
     },
     {

@@ -6,17 +6,21 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  Request
 } from '@nestjs/common';
 import { LoansService } from './loans.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
+import { AuthGuard } from '@nestjs/passport';
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('loans')
 export class LoansController {
   constructor(private readonly loansService: LoansService) {}
 
   @Post()
-  create(@Body() createLoanDto: CreateLoanDto) {
+  create(@Body() createLoanDto: CreateLoanDto, @Request() req) {
     return this.loansService.create(createLoanDto);
   }
 
@@ -38,5 +42,10 @@ export class LoansController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.loansService.remove(+id);
+  }
+
+  @Patch(':id/return')
+  returnLoan(@Param('id') id: string) {
+    return this.loansService.returnLoan(id);
   }
 }

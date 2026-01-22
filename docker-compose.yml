@@ -72,8 +72,36 @@ services:
     networks:
       - plms-network
 
+  plms_mongo:
+    image: mongo:6.0
+    container_name: plms_mongo
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - plms-network
+
+  plms_redis:
+    image: redis:alpine
+    container_name: plms_redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - plms-network      
+
+
 volumes:
   postgres_data:
+  zookeeper_data:
+  kafka_data:
+  mongo_data:
+  redis_data:
 
 
 networks:

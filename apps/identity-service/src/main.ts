@@ -6,7 +6,7 @@ import { AppModule } from './app/app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Global prefix: all routes will start with /api (e.g: /api/users)
+  // Global prefix: all routes will start with /api 
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 

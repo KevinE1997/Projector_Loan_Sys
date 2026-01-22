@@ -1,10 +1,14 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 import { Loan } from './entities/loan.entity';
+import { LoanStatus } from './entities/loan.entity';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+
 
 @Injectable()
 export class LoansService {
@@ -12,23 +16,75 @@ export class LoansService {
     @InjectRepository(Loan)
     private readonly loanRepository: Repository<Loan>,
 
-    // Inject the client that we defined in the module
+    // Inject the Kafka client defined in the module
     @Inject('KAFKA_CLIENT')
     private readonly kafkaClient: ClientKafka,
+    private readonly httpService: HttpService,
   ) { }
+
+
+
   async create(createLoanDto: CreateLoanDto) {
-    // Save the Loan in local database
+    // --- SYNCHRONOUS VALIDATION (HTTP) ---
+    const { projectorId } = createLoanDto;
+    let projector;
+
+    try {
+      // 1. Ask Inventory Service if the projector exists
+      // Note: We use localhost:3002 because we run locally. In production we would use environment variables.
+      const response = await firstValueFrom(
+        this.httpService.get(`http://localhost:3002/api/projectors/${projectorId}`)
+      );
+      projector = response.data;
+    } catch (error) {
+      // If Inventory responds with 404 or connection fails
+      throw new NotFoundException(`Projector with ID ${projectorId} does not exist or the inventory service is not responding.`);
+    }
+
+    // 2. Verify if it is available
+    if (projector.status !== 'AVAILABLE') {
+      throw new BadRequestException(`Projector ${projector.brand} is not available (Status: ${projector.status})`);
+    }
+    // ----------------------------------
+
+    // 3. If it passes validations, we proceed normally
     const newLoan = this.loanRepository.create(createLoanDto);
     const savedLoan = await this.loanRepository.save(newLoan);
 
-    // Emit event to Kafka
     this.kafkaClient.emit('loan.created', JSON.stringify(savedLoan));
 
     return savedLoan;
   }
 
+
+
+  async returnLoan(loanId: string) {
+    // Find the loan
+    const loan = await this.loanRepository.findOneBy({ id: loanId });
+
+    if (!loan) {
+      throw new Error('Loan not found');
+    }
+
+    if (loan.status === LoanStatus.RETURNED) {
+      throw new Error('This loan has already been returned');
+    }
+
+    // Update loan data
+    loan.status = LoanStatus.RETURNED;
+    loan.returnDate = new Date(); // Current date and time
+
+    const savedLoan = await this.loanRepository.save(loan);
+
+    // Emit event to Kafka to release the projector
+    // Send the projectorId so inventory service knows which projector to release
+    this.kafkaClient.emit('loan.returned', { projectorId: loan.projectorId });
+
+    return savedLoan;
+  }
+
   findAll() {
-    return `This action returns all loans`;
+    return this.loanRepository.find();
   }
 
   findOne(id: number) {

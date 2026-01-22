@@ -21,6 +21,9 @@ import { LoansModule } from './loans/loans.module';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+        ssl: {
+          rejectUnauthorized: false,
+        },
         // AutoLoadEntities: Automatically loads entities that you register in modules
         autoLoadEntities: true, 
         // Synchronize: TRUE only in development (creates tables automatically)

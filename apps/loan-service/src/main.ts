@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,14 +12,14 @@ async function bootstrap() {
   // Swagger Config
   const config = new DocumentBuilder()
     .setTitle('Loan Service')
-    .setDescription('Gestión de Préstamos de Proyectores y Activos')
+    .setDescription('Microservicio encargado de la gestión de préstamos')
     .setVersion('1.0')
     .addTag('Loans')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  // PORT 3002
+  await app.startAllMicroservices();
   const port = process.env.PORT || 3004;
   await app.listen(port);
   

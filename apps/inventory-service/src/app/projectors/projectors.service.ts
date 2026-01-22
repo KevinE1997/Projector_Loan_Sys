@@ -20,8 +20,8 @@ export class ProjectorsService {
     return this.projectorRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} projector`;
+  findOne(id: string) {
+    return this.projectorRepository.findOneBy({ id });
   }
 
   update(id: number, updateProjectorDto: UpdateProjectorDto) {
@@ -47,5 +47,18 @@ export class ProjectorsService {
     // Save
     await this.projectorRepository.save(projector);
     console.log(`Projector ${projector.id} marked as LOANED.`);
+  }
+
+  async markAsAvailable(projectorId: string) {
+    const projector = await this.projectorRepository.findOneBy({ id: projectorId });
+
+    if (!projector) {
+      console.log(`Error: Proyector ${projectorId} no encontrado para devolución.`);
+      return;
+    }
+
+    projector.status = ProjectorStatus.AVAILABLE;
+    await this.projectorRepository.save(projector);
+    console.log(`Proyector ${projector.id} marcado como DISPONIBLE.`);
   }
 }

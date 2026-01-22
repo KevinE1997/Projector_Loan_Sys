@@ -4,10 +4,20 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { LoansService } from './loans.service';
 import { LoansController } from './loans.controller';
 import { Loan } from './entities/loan.entity';
+import { HttpModule } from '@nestjs/axios';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from '../auth/jwt.strategy';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Loan]),
+    HttpModule,
+    PassportModule,
+    JwtModule.register({
+      secret: 'secretKey', 
+      signOptions: { expiresIn: '1h' },
+    }),
     // Register the client to connect with Kafka
     ClientsModule.register([
       {
@@ -25,6 +35,6 @@ import { Loan } from './entities/loan.entity';
     ]),
   ],
   controllers: [LoansController],
-  providers: [LoansService],
+  providers: [LoansService, JwtStrategy],
 })
 export class LoansModule {}

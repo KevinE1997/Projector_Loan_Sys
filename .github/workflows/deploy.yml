@@ -1,0 +1,143 @@
+name: PLMS Multi-Account Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: us-east-1
+  # ID de la Cuenta 1 
+  ECR_REGISTRY_URL: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: CONSTRUIR Y SUBIR IMÁGENES (BUILD & PUSH)
+  # ------------------------------------------------------------------
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [
+          identity-service, loan-service, inventory-service, 
+          feedback-service, penalty-service, maintenance-service,
+          audit-service, notification-service
+        ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials (Account 1)
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} # Credenciales Cuenta 1
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: latest
+        run: |
+          # Nombre del repo según creamos en Terraform: plms-nombre-servicio
+          REPO_NAME=plms-${{ matrix.service }}
+          
+          docker build -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG -f apps/${{ matrix.service }}/Dockerfile .
+          docker push $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG
+
+  # ------------------------------------------------------------------
+  # JOB 2: DESPLEGAR EN CUENTA 2 (CORE SERVICES)
+  # ------------------------------------------------------------------
+  deploy-core:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Account 2 EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.CORE_HOST }}      # IP Pública Cuenta 2
+          username: ${{ secrets.CORE_USERNAME }}
+          key: ${{ secrets.CORE_SSH_KEY }}
+          # Pasamos credenciales de Cuenta 1 como variables de entorno al script
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          script: |
+            # 1. Login en ECR (Usando credenciales de Cuenta 1)
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_REGION=us-east-1
+            
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+            # 2. Definir la URL del Registro
+            REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+            # 3. Actualizar Servicios Core
+            # Identity
+            docker pull $REGISTRY/plms-identity-service:latest
+            docker stop identity-service || true
+            docker rm identity-service || true
+            docker run -d --name identity-service -p 3000:3000 --env-file .env $REGISTRY/plms-identity-service:latest
+
+            # Inventory
+            docker pull $REGISTRY/plms-inventory-service:latest
+            docker stop inventory-service || true
+            docker rm inventory-service || true
+            docker run -d --name inventory-service -p 3002:3002 --env-file .env $REGISTRY/plms-inventory-service:latest
+
+            # Loan
+            docker pull $REGISTRY/plms-loan-service:latest
+            docker stop loan-service || true
+            docker rm loan-service || true
+            docker run -d --name loan-service -p 3004:3004 --env-file .env $REGISTRY/plms-loan-service:latest
+
+  # ------------------------------------------------------------------
+  # JOB 3: DESPLEGAR EN CUENTA 3 (SUPPORT SERVICES)
+  # ------------------------------------------------------------------
+  deploy-support:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Account 3 EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SUPPORT_HOST }}   # IP Pública Cuenta 3
+          username: ${{ secrets.SUPPORT_USERNAME }}
+          key: ${{ secrets.SUPPORT_SSH_KEY }}
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          script: |
+            # 1. Login en ECR
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_REGION=us-east-1
+            
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+            # 2. Actualizar Servicios Support
+            
+            # Notification
+            docker pull $REGISTRY/plms-notification-service:latest
+            docker stop notification-service || true
+            docker rm notification-service || true
+            docker run -d --name notification-service -p 3006:3006 --env-file .env $REGISTRY/plms-notification-service:latest
+
+            # Feedback
+            docker pull $REGISTRY/plms-feedback-service:latest
+            docker stop feedback-service || true
+            docker rm feedback-service || true
+            docker run -d --name feedback-service -p 3008:3008 --env-file .env $REGISTRY/plms-feedback-service:latest
+            
+            # Maintenance
+            docker pull $REGISTRY/plms-maintenance-service:latest
+            docker stop maintenance-service || true
+            docker rm maintenance-service || true
+            docker run -d --name maintenance-service -p 3010:3010 --env-file .env $REGISTRY/plms-maintenance-service:latest
+
+            # Penalty
+            docker pull $REGISTRY/plms-penalty-service:latest
+            docker stop penalty-service || true
+            docker rm penalty-service || true
+            docker run -d --name penalty-service -p 3016:3016 --env-file .env $REGISTRY/plms-penalty-service:latest

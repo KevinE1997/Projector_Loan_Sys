@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectorsModule } from './projectors/projectors.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
@@ -21,10 +23,26 @@ import { ProjectorsModule } from './projectors/projectors.module';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+        ssl: {
+          rejectUnauthorized: false,
+        },
         // AutoLoadEntities: Automatically loads entities that you register in modules
-        autoLoadEntities: true, 
+        autoLoadEntities: true,
         // Synchronize: TRUE only in development (creates tables automatically)
-        synchronize: true, 
+        synchronize: true,
+      }),
+    }),
+
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => ({
+        store: await redisStore({
+          socket: {
+            host: 'localhost',
+            port: 6379,
+          },
+          ttl: 10 * 1000,
+        }),
       }),
     }),
 
@@ -33,4 +51,4 @@ import { ProjectorsModule } from './projectors/projectors.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }
