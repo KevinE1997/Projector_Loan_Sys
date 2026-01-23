@@ -8,15 +8,22 @@ import { HttpModule } from '@nestjs/axios';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../auth/jwt.strategy';
+import { ConfigModule } from '@nestjs/config/dist/config.module';
+import { ConfigService } from '@nestjs/config/dist/config.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Loan]),
     HttpModule,
-    PassportModule,
-    JwtModule.register({
-      secret: 'secretKey', 
-      signOptions: { expiresIn: '1h' },
+    ConfigModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
     }),
     // Register the client to connect with Kafka
     ClientsModule.register([
@@ -25,7 +32,7 @@ import { JwtStrategy } from '../auth/jwt.strategy';
         transport: Transport.KAFKA,
         options: {
           client: {
-            brokers: [process.env.KAFKA_BROKER ||'localhost:9092'], // Kafka address in Docker
+            brokers: [process.env.KAFKA_BROKER || 'localhost:9092'], // Kafka address in Docker
           },
           consumer: {
             groupId: 'loan-consumer', // Consumer group identifier
@@ -37,4 +44,4 @@ import { JwtStrategy } from '../auth/jwt.strategy';
   controllers: [LoansController],
   providers: [LoansService, JwtStrategy],
 })
-export class LoansModule {}
+export class LoansModule { }

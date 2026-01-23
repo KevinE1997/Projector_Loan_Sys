@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { inventoryService } from '../services/inventory.service';
 import { Projector, CreateProjectorDto, ProjectorStatus } from '../../types/inventory.types';
+import { loansService } from '../services/loans.service';
 
 export const InventoryPage = () => {
     const [projectors, setProjectors] = useState<Projector[]>([]);
@@ -78,6 +79,35 @@ export const InventoryPage = () => {
         }
     };
 
+    const handleRequestLoan = async (projectorId: string) => {
+        // 1. Pedimos datos básicos (puedes automatizar el userId después con el token)
+        const userId = prompt("Ingrese el ID del usuario que solicita:");
+        const returnDate = prompt("Fecha de devolución (YYYY-MM-DD):", "2026-02-01");
+
+        if (!userId || !returnDate) return;
+
+        try {
+            setLoading(true);
+            // 2. Llamamos al servicio de préstamos
+            await loansService.createLoan({
+                projectorId,
+                userId,
+                returnDate: new Date(returnDate).toISOString()
+            });
+
+            alert("✅ Préstamo registrado y estado del proyector actualizado.");
+
+            // 3. Recargamos la tabla para ver el nuevo estado (AVAILABLE -> LOANED)
+            await loadProjectors();
+        } catch (err: any) {
+            console.error(err);
+            alert("❌ Error al crear préstamo: " + (err.response?.data?.message || err.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     return (
         <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
             <h2>📽️ Gestión de Proyectores</h2>
@@ -129,6 +159,25 @@ export const InventoryPage = () => {
                                         }}>
                                             {p.status}
                                         </span>
+
+                                        {/* BOTÓN DE ACCIÓN: Solo si está disponible */}
+                                        {p.status === 'AVAILABLE' && (
+                                            <button
+                                                onClick={() => handleRequestLoan(p.id)}
+                                                style={{
+                                                    padding: '5px 10px',
+                                                    backgroundColor: '#007bff',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.8em'
+                                                }}
+                                            >
+                                                Prestar ➡️
+                                            </button>
+                                        )}
+
                                     </td>
                                 </tr>
                             ))

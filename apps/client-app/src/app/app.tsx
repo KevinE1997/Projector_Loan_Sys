@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage'; // La que creamos antes
+import { LoansPage } from './pages/LoansPage';
 
 function App() {
   return (
@@ -18,6 +19,11 @@ function App() {
         
         {/* Ruta 3: El Inventario de Proyectores */}
         <Route path="/inventory" element={<InventoryPage />} />
+
+        {/* Ruta 4: Préstamos de Proyectores */}
+        <Route path="/loans" element={<LoansPage />} />
+        
+
       </Routes>
     </BrowserRouter>
   );
