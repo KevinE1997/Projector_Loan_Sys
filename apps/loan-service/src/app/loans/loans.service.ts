@@ -8,11 +8,12 @@ import { Loan } from './entities/loan.entity';
 import { LoanStatus } from './entities/loan.entity';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class LoansService {
   constructor(
+    private readonly configService: ConfigService,
     @InjectRepository(Loan)
     private readonly loanRepository: Repository<Loan>,
 
@@ -30,10 +31,11 @@ export class LoansService {
     let projector;
 
     try {
+      const inventoryUrl = this.configService.get<string>('INVENTORY_SERVICE_URL');
       // 1. Ask Inventory Service if the projector exists
       // Note: We use localhost:3002 because we run locally. In production we would use environment variables.
       const response = await firstValueFrom(
-        this.httpService.get(`http://localhost:3002/api/projectors/${projectorId}`)
+        this.httpService.get(`${inventoryUrl}/projectors/${projectorId}`)
       );
       projector = response.data;
     } catch (error) {
