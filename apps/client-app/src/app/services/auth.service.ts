@@ -4,7 +4,7 @@ import axios from 'axios';
 // Si pruebas en Android Emulador usa 'http://10.0.2.2:3000'
 // Si es Web/Electron usa 'http://localhost:3000'
 // Si es AWS usa la IP pública de tu Load Balancer o EC2
-const API_URL = 'plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api'; 
+const API_URL = 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api'; 
 
 export const loginService = async (email: string, password: string) => {
   try {

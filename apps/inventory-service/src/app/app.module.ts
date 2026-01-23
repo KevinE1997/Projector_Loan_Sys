@@ -35,11 +35,14 @@ import { redisStore } from 'cache-manager-redis-yet';
 
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => ({
+      imports: [ConfigModule], // 1. Importar ConfigModule
+      inject: [ConfigService], // 2. Inyectar ConfigService
+      useFactory: async (configService: ConfigService) => ({ // 3. Usarlo
         store: await redisStore({
           socket: {
-            host: 'localhost',
-            port: 6379,
+            // 4. Leer variable de entorno, o usar localhost si falla
+            host: configService.get<string>('REDIS_HOST') || 'localhost',
+            port: configService.get<number>('REDIS_PORT') || 6379,
           },
           ttl: 10 * 1000,
         }),
