@@ -25,7 +25,7 @@ import { JwtStrategy } from '../auth/jwt.strategy';
         transport: Transport.KAFKA,
         options: {
           client: {
-            brokers: ['localhost:9092'], // Kafka address in Docker
+            brokers: [process.env.KAFKA_BROKER ||'localhost:9092'], // Kafka address in Docker
           },
           consumer: {
             groupId: 'loan-consumer', // Consumer group identifier
