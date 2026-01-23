@@ -10,8 +10,10 @@ import {
   Alert 
 } from '@mui/material';
 import { loginService } from '../services/auth.service';
+import { useNavigate } from 'react-router-dom';
 
 export const LoginPage = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,8 +26,8 @@ export const LoginPage = () => {
 
     try {
       await loginService(email, password);
-      alert('¡Login Exitoso! Token guardado.');
-      // Aquí redirigiremos al Dashboard.
+      navigate('/dashboard');
+      
     } catch (err: any) {
       setError('Credenciales inválidas o error de servidor');
     } finally {

@@ -1,24 +1,25 @@
-// apps/client-app/src/app/app.tsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { DashboardPage } from './pages/DashboardPage';
+import { InventoryPage } from './pages/InventoryPage'; // La que creamos antes
 
-// Creamos un tema base (podemos personalizar colores aquí)
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2', // Azul
-    },
-  },
-});
-
-export function App() {
+function App() {
   return (
-    <ThemeProvider theme={theme}>
-      {/* CssBaseline resetea los estilos del navegador para que se vea igual en todos */}
-      <CssBaseline />
-      <LoginPage />
-    </ThemeProvider>
+    <BrowserRouter>
+      <Routes>
+        {/* Ruta por defecto: Redirigir al Login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* Ruta 1: Login */}
+        <Route path="/login" element={<LoginPage />} />
+        
+        {/* Ruta 2: El Menú Principal */}
+        <Route path="/dashboard" element={<DashboardPage />} />
+        
+        {/* Ruta 3: El Inventario de Proyectores */}
+        <Route path="/inventory" element={<InventoryPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

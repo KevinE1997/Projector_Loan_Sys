@@ -13,7 +13,7 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        brokers: ['localhost:9092'],
+        brokers: [process.env.KAFKA_BROKER ||'localhost:9092'],
       },
       consumer: {
         groupId: 'inventory-consumer', // Unique group for inventory
