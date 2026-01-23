@@ -3,6 +3,7 @@ import { LoansService } from './loans.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Loan } from './entities/loan.entity';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config/dist/config.service';
 
 describe('LoansService', () => {
   let service: LoansService;
@@ -48,6 +49,17 @@ describe('LoansService', () => {
         {
           provide: HttpService,
           useValue: mockHttpService,
+        },
+
+        // Proveedor 4: ConfigService
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'INVENTORY_SERVICE_URL') return 'http://localhost:3002/api';
+              return null;
+            }),
+          },
         },
       ],
     }).compile();
