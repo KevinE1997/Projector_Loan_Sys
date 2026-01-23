@@ -7,7 +7,7 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2', // Azul estándar
+      main: '#1976d2', // Azul
     },
   },
 });
