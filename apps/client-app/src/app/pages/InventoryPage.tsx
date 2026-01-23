@@ -3,46 +3,42 @@ import { inventoryService } from '../services/inventory.service';
 import { Projector, CreateProjectorDto, ProjectorStatus } from '../../types/inventory.types';
 
 export const InventoryPage = () => {
-    // Estado para la lista
     const [projectors, setProjectors] = useState<Projector[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Estado para el formulario
     const [formData, setFormData] = useState<CreateProjectorDto>({
         serialNumber: '',
         brand: '',
         model: '',
-        lumens: 3000 // Valor por defecto
+        lumens: 3000
     });
 
-    // Cargar datos al iniciar
     useEffect(() => {
         loadProjectors();
     }, []);
 
     const loadProjectors = async () => {
         setLoading(true);
+        setError(''); // Limpiar errores previos
         try {
             const data: any = await inventoryService.getAllProjectors();
-
-            // AGREGA ESTO: Vamos a espiar la respuesta
             console.log("📢 RESPUESTA DEL BACKEND:", data);
 
-            // Si el backend devuelve { data: [...] }, ajustamos aquí:
+            // Ahora que sabemos que llega un array directo:
             if (Array.isArray(data)) {
                 setProjectors(data);
-            } else if (data && Array.isArray(data.data)) {
-                // A veces NestJS devuelve un objeto envuelto
+            } else if (data?.data && Array.isArray(data.data)) {
                 setProjectors(data.data);
             } else {
-                console.error("⚠️ Formato desconocido:", data);
-                setProjectors([]); // Evita el crash
+                setProjectors([]);
             }
-
-        } catch (error) {
-            console.error(error);
-            setProjectors([]); // En caso de error, array vacío
+        } catch (err: any) {
+            console.error(err);
+            setError('No se pudo conectar con el servicio de inventario.');
+            setProjectors([]);
+        } finally {
+            setLoading(false); // Siempre quitamos el loading al terminar
         }
     };
 
@@ -56,7 +52,6 @@ export const InventoryPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // IMPORTANTE: Asegurar que lumens sea número
             const payload = {
                 ...formData,
                 lumens: Number(formData.lumens)
@@ -64,10 +59,9 @@ export const InventoryPage = () => {
 
             await inventoryService.createProjector(payload);
 
-            // Limpiar formulario y recargar tabla
             setFormData({ serialNumber: '', brand: '', model: '', lumens: 3000 });
             alert('¡Proyector creado con éxito!');
-            loadProjectors();
+            loadProjectors(); // Recargar la lista
 
         } catch (err: any) {
             console.error(err);
@@ -75,80 +69,73 @@ export const InventoryPage = () => {
         }
     };
 
-    // Función para dar color al estado
     const getStatusColor = (status: ProjectorStatus) => {
         switch (status) {
-            case ProjectorStatus.AVAILABLE: return 'green';
-            case ProjectorStatus.LOANED: return 'orange';
-            case ProjectorStatus.MAINTENANCE: return 'red';
-            default: return 'black';
+            case ProjectorStatus.AVAILABLE: return '#28a745'; // Verde
+            case ProjectorStatus.LOANED: return '#ffc107';    // Naranja
+            case ProjectorStatus.MAINTENANCE: return '#dc3545'; // Rojo
+            default: return '#6c757d'; // Gris
         }
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
             <h2>📽️ Gestión de Proyectores</h2>
 
-            {/* --- FORMULARIO DE CREACIÓN --- */}
-            <div style={{ background: '#f5f5f5', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-                <h3>Agregar Nuevo</h3>
-                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '10px', gridTemplateColumns: '1fr 1fr' }}>
-                    <input
-                        name="serialNumber" placeholder="Número de Serie" required
-                        value={formData.serialNumber} onChange={handleInputChange}
-                    />
-                    <input
-                        name="brand" placeholder="Marca (ej: Epson)" required
-                        value={formData.brand} onChange={handleInputChange}
-                    />
-                    <input
-                        name="model" placeholder="Modelo" required
-                        value={formData.model} onChange={handleInputChange}
-                    />
-                    <input
-                        name="lumens" type="number" placeholder="Lúmenes" required
-                        value={formData.lumens} onChange={handleInputChange}
-                    />
-
-                    <button type="submit" style={{ gridColumn: 'span 2', padding: '10px', cursor: 'pointer' }}>
-                        Guardar Proyector
-                    </button>
+            {/* --- FORMULARIO --- */}
+            <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #dee2e6' }}>
+                <h3 style={{ marginTop: 0 }}>Agregar Nuevo Proyector</h3>
+                <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '15px', gridTemplateColumns: '1fr 1fr' }}>
+                    <input name="serialNumber" placeholder="Número de Serie" required value={formData.serialNumber} onChange={handleInputChange} style={inputStyle} />
+                    <input name="brand" placeholder="Marca" required value={formData.brand} onChange={handleInputChange} style={inputStyle} />
+                    <input name="model" placeholder="Modelo" required value={formData.model} onChange={handleInputChange} style={inputStyle} />
+                    <input name="lumens" type="number" placeholder="Lúmenes" required value={formData.lumens} onChange={handleInputChange} style={inputStyle} />
+                    <button type="submit" style={buttonStyle}>Guardar Proyector</button>
                 </form>
             </div>
 
-            {/* --- LISTA DE PROYECTORES --- */}
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {/* --- TABLA --- */}
+            {error && <p style={{ color: 'red', fontWeight: 'bold' }}>⚠️ {error}</p>}
 
             {loading ? (
-                <p>Cargando datos...</p>
+                <div style={{ textAlign: 'center', padding: '20px' }}>⏳ Cargando inventario...</div>
             ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }} border={1}>
-                    <thead style={{ background: '#eee' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+                    <thead style={{ background: '#343a40', color: 'white' }}>
                         <tr>
-                            <th>Serial</th>
-                            <th>Marca / Modelo</th>
-                            <th>Lúmenes</th>
-                            <th>Estado</th>
+                            <th style={thStyle}>Serial</th>
+                            <th style={thStyle}>Marca</th>
+                            <th style={thStyle}>Modelo</th>
+                            <th style={thStyle}>Lúmenes</th>
+                            <th style={thStyle}>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {/* SI projectors existe Y es un array, entonces mapeamos. SI NO, mostramos mensaje vacío */}
-                        {Array.isArray(projectors) && projectors.length > 0 ? (
-                            projectors.map((projector) => (
-                                <tr key={projector.id}>
-                                    <td>{projector.serialNumber}</td>
-                                    <td>{projector.brand}</td>
-                                    <td>{projector.model}</td>
-                                    <td>{projector.lumens}</td>
-                                    <td>
-                                        {/* Botones de acción si tienes */}
+                        {projectors.length > 0 ? (
+                            projectors.map((p) => (
+                                <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}>
+                                    <td style={tdStyle}>{p.serialNumber}</td>
+                                    <td style={tdStyle}>{p.brand}</td>
+                                    <td style={tdStyle}>{p.model}</td>
+                                    <td style={tdStyle}>{p.lumens}</td>
+                                    <td style={tdStyle}>
+                                        <span style={{
+                                            backgroundColor: getStatusColor(p.status),
+                                            color: 'white',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.85em',
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {p.status}
+                                        </span>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center' }}>
-                                    No hay proyectores o hubo un error al cargar.
+                                <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                                    No se encontraron proyectores en el sistema.
                                 </td>
                             </tr>
                         )}
@@ -158,3 +145,9 @@ export const InventoryPage = () => {
         </div>
     );
 };
+
+// Estilos rápidos en objetos para no depender de CSS externo por ahora
+const inputStyle = { padding: '10px', borderRadius: '4px', border: '1px solid #ccc' };
+const buttonStyle = { gridColumn: 'span 2', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' };
+const thStyle = { padding: '12px', textAlign: 'left' as const };
+const tdStyle = { padding: '12px' };
