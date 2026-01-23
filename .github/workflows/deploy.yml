@@ -148,7 +148,7 @@ jobs:
             docker run -d --name loan-service -p 3004:3004 --env-file .env $REGISTRY/plms-loan-service:latest
 
   # ------------------------------------------------------------------
-  # JOB 3: DESPLEGAR EN CUENTA 3 (SUPPORT SERVICES)
+  # JOB 3: DESPLEGAR EN CUENTA 3 SUPPORT SERVICES
   # ------------------------------------------------------------------
   deploy-support:
     needs: validate-and-push
