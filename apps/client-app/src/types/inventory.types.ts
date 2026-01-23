@@ -23,3 +23,13 @@ export interface CreateProjectorDto {
   model: string;
   lumens: number;
 }
+
+// src/types/inventory.types.ts (o donde tengas tus tipos)
+
+export interface CreateLoanDto {
+  projectorId: string;
+  userId: string;
+  startDate: string;  // Cambiamos returnDate por estos dos
+  endDate: string;
+  observations?: string;
+}

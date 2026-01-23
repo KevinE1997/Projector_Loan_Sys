@@ -80,30 +80,31 @@ export const InventoryPage = () => {
     };
 
     const handleRequestLoan = async (projectorId: string) => {
-        // 1. Pedimos datos básicos (puedes automatizar el userId después con el token)
-        const userId = prompt("Ingrese el ID del usuario que solicita:");
-        const returnDate = prompt("Fecha de devolución (YYYY-MM-DD):", "2026-02-01");
+        const userId = prompt("Ingrese el ID del usuario:");
+        const days = prompt("¿Por cuántos días es el préstamo?", "1");
 
-        if (!userId || !returnDate) return;
+        if (!userId || !days) return;
+
+        // Calculamos las fechas que la ENTIDAD Loan espera
+        const startDate = new Date(); // Hoy
+        const endDate = new Date();
+        endDate.setDate(startDate.getDate() + parseInt(days)); // Hoy + N días
 
         try {
             setLoading(true);
-            // 2. Llamamos al servicio de préstamos
             await loansService.createLoan({
                 projectorId,
                 userId,
-                returnDate: new Date(returnDate).toISOString()
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                // No enviamos returnDate aquí porque aún no ha sido devuelto
+                observations: "Préstamo solicitado desde el panel de inventario"
             });
 
-            alert("✅ Préstamo registrado y estado del proyector actualizado.");
-
-            // 3. Recargamos la tabla para ver el nuevo estado (AVAILABLE -> LOANED)
+            alert("✅ Préstamo creado con éxito");
             await loadProjectors();
         } catch (err: any) {
-            console.error(err);
-            alert("❌ Error al crear préstamo: " + (err.response?.data?.message || err.message));
-        } finally {
-            setLoading(false);
+            // ... error handling ...
         }
     };
 

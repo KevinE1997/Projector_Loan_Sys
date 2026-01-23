@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import { CreateLoanDto } from '../../types/inventory.types';
 // La URL que configuramos en Nginx (Gateway Cuenta 1)
 const API_URL = 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api/loans';
 
@@ -14,7 +14,7 @@ export const loansService = {
   },
 
   // Crear un nuevo préstamo
-  createLoan: async (loanData: { projectorId: string; userId: string; returnDate: string }) => {
+  createLoan: async (loanData: CreateLoanDto) => {
     const token = localStorage.getItem('token');
 
     console.log("Token enviado a Loans:", token);
