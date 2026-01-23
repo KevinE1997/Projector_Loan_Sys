@@ -25,7 +25,7 @@ export const LoginPage = () => {
     try {
       await loginService(email, password);
       alert('¡Login Exitoso! Token guardado.');
-      // Aquí redirigiremos al Dashboard luego
+      // Aquí redirigiremos al Dashboard
     } catch (err: any) {
       setError('Credenciales inválidas o error de servidor');
     } finally {
