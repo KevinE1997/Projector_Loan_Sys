@@ -8,7 +8,7 @@ export const loansService = {
   // 1. Obtener todos los préstamos
   getAllLoans: async () => {
     const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_URL}`, {
+    const response = await axios.get(`${API_URL}/loans`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
@@ -17,7 +17,7 @@ export const loansService = {
   // 2. Crear préstamo
   createLoan: async (loanData: CreateLoanDto) => {
     const token = localStorage.getItem('token');
-    const response = await axios.post(`${API_URL}`, loanData, {
+    const response = await axios.post(`${API_URL}/loans`, loanData, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
@@ -26,7 +26,7 @@ export const loansService = {
   // 3. Obtener préstamos (Alias o filtrado)
   getLoans: async () => {
     const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_URL}`, {
+    const response = await axios.get(`${API_URL}/loans`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
