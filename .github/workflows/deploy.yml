@@ -207,24 +207,33 @@ jobs:
       - name:  Checkout
         uses: actions/checkout@v3
 
-      # 2. Preparar entorno
-      - name:  Setup Node
+      # 2. Instalar PNPM (La pieza que faltaba)
+      - name:  Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8 # Usamos la versión 8 que es muy estable con Nx
+
+      # 3. Preparar Node.js
+      - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: '18'
+          cache: 'pnpm' # Habilita caché inteligente para pnpm
 
-      # 3. Instalar dependencias (Nx necesita esto)
+      # 4. Instalar dependencias con PNPM
+      # --no-frozen-lockfile: Genera el lockfile si hace falta, evita errores si está desincronizado
       - name:  Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: pnpm install --no-frozen-lockfile
 
-      # 4. Construir el proyecto
-      - name:  Build Nx Project
-        run: npm run build
+      # 5. Construir el proyecto
+      # Ahora sí encontrará el comando "nx" porque pnpm lo instala correctamente
+      - name: Build Nx Project
+        run: pnpm run build
         env:
           VITE_API_URL: ${{ secrets.API_URL }}
 
-      # 5. Copiar TODA la carpeta dist al servidor temporalmente
-      - name:  Copy dist to EC2
+      # 6. Copiar carpeta dist
+      - name: Copy dist to EC2
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -233,7 +242,7 @@ jobs:
           source: "dist/"
           target: "/home/ubuntu/temp_deploy"
 
-      # 6. Mover los archivos a Nginx (La parte crítica para Nx)
+      # 7. Desplegar en Nginx
       - name:  Deploy to Nginx
         uses: appleboy/ssh-action@master
         with:
@@ -242,18 +251,18 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             echo " Iniciando despliegue..."
-
-            # 1. Limpiar carpeta de Nginx
+            
+            # 1. Limpiar Nginx
             sudo rm -rf /var/www/html/*
-
-            # 2. Mover archivos desde la subcarpeta de Nx a la raíz pública
-            # AQUÍ ESTÁ LA MAGIA: Buscamos dentro de dist/apps/client-app
+            
+            # 2. Mover archivos (Ruta de Nx: dist/apps/client-app)
+            # Asegúrate que 'client-app' es el nombre real de tu carpeta dentro de apps/
             sudo mv /home/ubuntu/temp_deploy/dist/apps/client-app/* /var/www/html/
-
-            # 3. Borrar carpeta temporal
+            
+            # 3. Borrar temporal
             rm -rf /home/ubuntu/temp_deploy
-
+            
             # 4. Reiniciar Nginx
             sudo systemctl restart nginx
-
-            echo "✅ Despliegue completado con éxito"
+            
+            echo "✅ Despliegue completado"
