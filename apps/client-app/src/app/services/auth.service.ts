@@ -7,6 +7,7 @@ export const authService = {
   
   // 1. LOGIN (Modificado para guardar el Rol)
   login: async (email: string, password: string) => {
+    
     try {
       // Limpiamos cualquier sesión previa por seguridad
       localStorage.removeItem('token');
@@ -17,6 +18,7 @@ export const authService = {
         password,
       });
 
+      console.log("📦 Respuesta del Backend:", response.data);
       // Buscamos el token y el rol en la respuesta
       // NOTA: Asegúrate de que tu Backend devuelva el rol. 
       // Si tu backend devuelve el rol dentro de un objeto 'user', usa response.data.user.role

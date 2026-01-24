@@ -13,6 +13,9 @@ export const DashboardPage = () => {
     }
   };
 
+  const userRole = localStorage.getItem('role');
+  console.log("👮 ROL ACTUAL EN MEMORIA:", userRole);
+
   return (
     <div className="dashboard-container">
       
