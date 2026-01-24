@@ -40,7 +40,7 @@ export const loansService = {
     // CORREGIDO: Usamos patch y la URL correcta sin duplicar "/loans"
     // Resultado: http://.../api/loans/{id}/return
     const response = await axios.patch(
-      `${API_URL}/${loanId}/return`, 
+      `${API_URL}/loans/${loanId}/return`, 
       { observations },
       {
         headers: { Authorization: `Bearer ${token}` }
