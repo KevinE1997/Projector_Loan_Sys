@@ -1,0 +1,14 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MaintenanceService } from './maintenance.service';
+import { MaintenanceController } from './maintenance.controller';
+import { MaintenanceTicket } from './entities/maintenance.entity'; 
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([MaintenanceTicket]), 
+  ],
+  controllers: [MaintenanceController],
+  providers: [MaintenanceService],
+})
+export class MaintenanceModule {}

@@ -35,7 +35,15 @@
       },
       "exclude": [
         "apps/identity-service-e2e/**/*",
-        "apps/inventory-service-e2e/**/*"
+        "apps/inventory-service-e2e/**/*",
+        "apps/loan-service-e2e/**/*",
+        "notification-service-e2e/**/*",
+        "api-gateway-e2e/**/*",
+        "feedback-service-e2e/**/*",
+        "maintenance-service-e2e/**/*",
+        "audit-service-e2e/**/*",
+        "dashboard-service-e2e/**/*",
+        "penalty-service-e2e/**/*"
       ]
     },
     {
@@ -48,6 +56,37 @@
         "watchDepsTargetName": "watch-deps",
         "serveStaticTargetName": "serve-static"
       }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "testTargetName": "test",
+        "serveTargetName": "serve",
+        "devTargetName": "dev",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "typecheckTargetName": "typecheck",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
     }
-  ]
+  ],
+  "generators": {
+    "@nx/react": {
+      "application": {
+        "babel": true,
+        "style": "css",
+        "linter": "eslint",
+        "bundler": "vite"
+      },
+      "component": {
+        "style": "css"
+      },
+      "library": {
+        "style": "css",
+        "linter": "eslint"
+      }
+    }
+  }
 }

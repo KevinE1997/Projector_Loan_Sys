@@ -47,3 +47,56 @@ Thumbs.db
 .env
 .env.local
 .env.*
+
+# --- Node.js & NestJS Standard ---
+node_modules/
+dist/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# --- Environment Variables---
+.env
+.env.test
+.env.production
+.env.local
+*.env
+
+# --- Terraform---
+# Ignorar carpetas de plugins descargados
+**/.terraform/
+
+# Ignorar estado de la infraestructura
+*.tfstate
+*.tfstate.backup
+
+# Ignorar variables con secretos
+*.tfvars
+*.auto.tfvars
+
+# Ignorar archivos de plan de ejecución
+*.tfplan
+
+# --- AWS Keys & Security---
+# Ignorar cualquier llave privada generada
+*.pem
+*.pub
+*.key
+id_rsa
+key.pem
+plms-*.pem
+
+# --- IDEs & OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Nx Build Cache ---
+.nx/cache
+.nx/workspace-data
+vite.config.*.timestamp*

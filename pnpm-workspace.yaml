@@ -1,1 +1,13 @@
 autoInstallPeers: true
+packages:
+  - 'apps/*'
+  - 'libs/*'
+  - 'api-gateway/*'
+  - 'audit-service/*'
+  - 'identity-service/*'
+  - 'inventory-service/*'
+  - 'loan-service/*'
+  - 'notification-service/*'
+  - 'feedback-service/*'
+  - 'maintenance-service/*'
+  - 'penalty-service/*'

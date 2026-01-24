@@ -1,0 +1,268 @@
+name: PLMS Master Pipeline (PNPM + Nx)
+
+on:
+  push:
+    branches: ["main", "feature/*"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY_URL: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  # Importante para Nx:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+jobs:
+  validate-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GRUPO 1: Los que SÍ están en la carpeta apps/
+          - service: identity-service
+            path: apps/identity-service
+          - service: loan-service
+            path: apps/loan-service
+          - service: inventory-service
+            path: apps/inventory-service
+
+          # GRUPO 2: Los que están en la raíz
+          - service: feedback-service
+            path: feedback-service
+          - service: notification-service
+            path: notification-service
+          - service: maintenance-service
+            path: maintenance-service
+          - service: penalty-service
+            path: penalty-service
+          - service: dashboard-service
+            path: dashboard-service
+          - service: api-gateway
+            path: api-gateway
+          - service: audit-service
+            path: audit-service
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Importante para que Nx detecte cambios (affected)
+
+      # 1. INSTALAR PNPM
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      # 2. INSTALAR NODE.JS
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "pnpm"
+
+      # 3. INSTALAR DEPENDENCIAS (Usando tu pnpm-lock.yaml)
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # --- ETAPA DE CALIDAD (Nx + PNPM) ---
+
+      - name: Lint ${{ matrix.service }}
+        run: npx nx lint ${{ matrix.service }}
+
+      - name: Test ${{ matrix.service }}
+        run: npx nx test ${{ matrix.service }}
+
+      # --- ETAPA DE AWS ---
+
+      - name: Configure AWS Credentials (Account 1)
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Debug File System
+        run: |
+          echo "Listando carpetas en apps/:"
+          ls -F apps/
+
+          echo "Buscando Dockerfile en ${{ matrix.service }}:"
+          ls -l apps/${{ matrix.service }}/Dockerfile || echo "NO ENCONTRADO"
+
+      - name: Build and Push Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: latest
+        run: |
+          REPO_NAME=plms-${{ matrix.service }}
+
+          docker build -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG -f ${{ matrix.path }}/Dockerfile .
+          docker push $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG
+
+  # ------------------------------------------------------------------
+  # JOB 2: DESPLEGAR EN CUENTA 2 -CORE SERVICES
+  # ------------------------------------------------------------------
+  deploy-core:
+    needs: validate-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Account 2 EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.CORE_HOST }}
+          username: ${{ secrets.CORE_USERNAME }}
+          key: ${{ secrets.CORE_SSH_KEY }}
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          script: |
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
+            export AWS_REGION=us-east-1
+
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+            docker system prune -a -f
+            # Identity
+            docker pull $REGISTRY/plms-identity-service:latest
+            docker stop identity-service || true
+            docker rm identity-service || true
+            docker run -d --name identity-service --restart always -p 3000:3000 --env-file .env $REGISTRY/plms-identity-service:latest
+
+            # Inventory
+            docker pull $REGISTRY/plms-inventory-service:latest
+            docker stop inventory-service || true
+            docker rm inventory-service || true
+            docker run -d --name inventory-service --restart always -p 3002:3000 --env-file .env $REGISTRY/plms-inventory-service:latest
+
+            # Loan
+            docker pull $REGISTRY/plms-loan-service:latest
+            docker stop loan-service || true
+            docker rm loan-service || true
+            docker run -d --name loan-service --restart always -p 3004:3000 --env-file .env $REGISTRY/plms-loan-service:latest
+
+  # ------------------------------------------------------------------
+  # JOB 3: DESPLEGAR EN CUENTA 3 SUPPORT SERVICES
+  # ------------------------------------------------------------------
+  deploy-support:
+    needs: validate-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Account 3 EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SUPPORT_HOST }}
+          username: ${{ secrets.SUPPORT_USERNAME }}
+          key: ${{ secrets.SUPPORT_SSH_KEY }}
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION
+          script: |
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
+            export AWS_REGION=us-east-1
+
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            docker system prune -a -f
+
+            # Notification
+            docker pull $REGISTRY/plms-notification-service:latest
+            docker stop notification-service || true
+            docker rm notification-service || true
+            docker run -d --name notification-service --restart always -p 3006:3000 --env-file .env $REGISTRY/plms-notification-service:latest
+
+            # Feedback
+            docker pull $REGISTRY/plms-feedback-service:latest
+            docker stop feedback-service || true
+            docker rm feedback-service || true
+            docker run -d --name feedback-service --restart always -p 3008:3000 --env-file .env $REGISTRY/plms-feedback-service:latest
+
+            # Maintenance
+            docker pull $REGISTRY/plms-maintenance-service:latest
+            docker stop maintenance-service || true
+            docker rm maintenance-service || true
+            docker run -d --name maintenance-service --restart always -p 3010:3000 --env-file .env $REGISTRY/plms-maintenance-service:latest
+
+            # Penalty
+            docker pull $REGISTRY/plms-penalty-service:latest
+            docker stop penalty-service || true
+            docker rm penalty-service || true
+            docker run -d --name penalty-service --restart always -p 3016:3000 --env-file .env $REGISTRY/plms-penalty-service:latest
+
+          # ------------------------------------------------------------------
+          # JOB 4: DESPLEGAR EN CUENTA 4 FRONTEND
+          # ------------------------------------------------------------------
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Bajar código
+      - name:  Checkout
+        uses: actions/checkout@v3
+
+      # 2. Instalar PNPM (La pieza que faltaba)
+      - name:  Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8 # Usamos la versión 8 que es muy estable con Nx
+
+      # 3. Preparar Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm' # Habilita caché inteligente para pnpm
+
+      # 4. Instalar dependencias con PNPM
+      # --no-frozen-lockfile: Genera el lockfile si hace falta, evita errores si está desincronizado
+      - name:  Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # 5. Construir el proyecto
+      # Ahora sí encontrará el comando "nx" porque pnpm lo instala correctamente
+      - name: Build Nx Project
+        run: pnpm run build
+        env:
+          VITE_API_URL: ${{ secrets.API_URL }}
+
+      # 6. Copiar carpeta dist
+      - name: Copy dist to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/"
+          target: "/home/ubuntu/temp_deploy"
+
+      # 7. Desplegar en Nginx
+      - name:  Deploy to Nginx
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo " Iniciando despliegue..."
+            
+            # 1. Limpiar Nginx
+            sudo rm -rf /var/www/html/*
+            
+            # 2. Mover archivos (Ruta de Nx: dist/apps/client-app)
+            # Asegúrate que 'client-app' es el nombre real de tu carpeta dentro de apps/
+            sudo mv /home/ubuntu/temp_deploy/dist/apps/client-app/* /var/www/html/
+            
+            # 3. Borrar temporal
+            rm -rf /home/ubuntu/temp_deploy
+            
+            # 4. Reiniciar Nginx
+            sudo systemctl restart nginx
+            
+            echo "✅ Despliegue completado"

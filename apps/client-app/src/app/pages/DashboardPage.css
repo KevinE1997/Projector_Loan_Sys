@@ -1,0 +1,121 @@
+/* DashboardPage.css */
+
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f7fafc; /* Gris muy suave */
+  padding: 40px 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.dashboard-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #2d3748;
+  margin-bottom: 10px;
+}
+
+.dashboard-subtitle {
+  color: #718096;
+  font-size: 1.1rem;
+}
+
+/* GRID DE TARJETAS */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* ESTILO DE LAS TARJETAS */
+.card-module {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-module:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-color: transparent;
+}
+
+/* Iconos y Colores por tipo */
+.icon-container {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 20px;
+}
+
+/* Inventario (Azul) */
+.card-inventory:hover { border-top: 4px solid #4299e1; }
+.card-inventory .icon-container { background-color: #ebf8ff; color: #3182ce; }
+
+/* Préstamos Activos (Verde/Esmeralda) */
+.card-active:hover { border-top: 4px solid #48bb78; }
+.card-active .icon-container { background-color: #f0fff4; color: #38a169; }
+
+/* Historial (Morado) */
+.card-history:hover { border-top: 4px solid #9f7aea; }
+.card-history .icon-container { background-color: #faf5ff; color: #805ad5; }
+
+/* Texto de las tarjetas */
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.card-desc {
+  font-size: 0.9rem;
+  color: #718096;
+  line-height: 1.5;
+}
+
+/* BOTÓN CERRAR SESIÓN */
+.logout-container {
+  margin-top: 60px;
+}
+
+.btn-logout {
+  background-color: white;
+  color: #e53e3e;
+  border: 2px solid #fed7d7;
+  padding: 12px 30px;
+  border-radius: 50px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-logout:hover {
+  background-color: #fff5f5;
+  border-color: #e53e3e;
+  transform: scale(1.05);
+}

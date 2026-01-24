@@ -1,29 +1,42 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices'; // <--- Import
 import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
+  // Create the base application
   const app = await NestFactory.create(AppModule);
+
+  // Connect the Microservice
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        brokers: [process.env.KAFKA_BROKER ||'localhost:9092'],
+      },
+      consumer: {
+        groupId: 'inventory-consumer', // Unique group for inventory
+      },
+    },
+  });
+
+  // Normal Swagger and prefix configuration
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
-
-  // Swagger Config
   const config = new DocumentBuilder()
     .setTitle('Inventory Service')
-    .setDescription('Gestión de Proyectores y Activos')
     .setVersion('1.0')
-    .addTag('Projectors')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  // PORT 3002
+  // Start everything
+  await app.startAllMicroservices(); // Start Kafka connection
   const port = process.env.PORT || 3002;
   await app.listen(port);
   
-  Logger.log(`🚀 Inventory running on: http://localhost:${port}/${globalPrefix}`);
-  Logger.log(`📄 Swagger: http://localhost:${port}/${globalPrefix}/docs`);
+  Logger.log(`🚀 Inventory Service listening on port ${port} and Kafka`);
 }
 
 bootstrap();
