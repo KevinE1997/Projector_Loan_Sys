@@ -80,7 +80,7 @@ export class LoansService {
 
     // Emit event to Kafka to release the projector
     // Send the projectorId so inventory service knows which projector to release
-    this.kafkaClient.emit('loan.returned', { projectorId: loan.projectorId });
+    this.kafkaClient.emit('loan.returned', { projectorId: loan.projectorId});
 
     return savedLoan;
   }

@@ -129,6 +129,7 @@ jobs:
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
+            docker system prune -a -f
             # Identity
             docker pull $REGISTRY/plms-identity-service:latest
             docker stop identity-service || true
@@ -169,6 +170,7 @@ jobs:
             
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            docker system prune -a -f
 
             # Notification
             docker pull $REGISTRY/plms-notification-service:latest

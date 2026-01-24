@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { inventoryService } from '../services/inventory.service';
 import { Projector, CreateProjectorDto, ProjectorStatus } from '../../types/inventory.types';
 import { loansService } from '../services/loans.service';
+import Link from '@mui/material/Link/Link';
 
 export const InventoryPage = () => {
     const [projectors, setProjectors] = useState<Projector[]>([]);
@@ -191,7 +192,14 @@ export const InventoryPage = () => {
                         )}
                     </tbody>
                 </table>
+
+
             )}
+
+                
+
+
+
         </div>
     );
 };

@@ -1,97 +1,79 @@
-// apps/client-app/src/app/pages/LoginPage.tsx
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Container, 
-  TextField, 
-  Typography, 
-  Paper, 
-  Alert 
-} from '@mui/material';
-import { loginService } from '../services/auth.service';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { authService } from '../services/auth.service';
+import './Auth.css'; // <--- IMPORTANTE
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
-
     try {
-      await loginService(email, password);
-      navigate('/dashboard');
-      
-    } catch (err: any) {
-      setError('Credenciales inválidas o error de servidor');
+      await authService.login(email, password);
+      navigate('/dashboard', { replace: true });
+    } catch (error: any) {
+      alert(error.message || 'Credenciales incorrectas');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ p: 4, width: '100%', borderRadius: 2 }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Projector Loan Sys
-          </Typography>
-          <Typography variant="body2" color="textSecondary" align="center" sx={{ mb: 3 }}>
-            Inicia sesión para continuar
-          </Typography>
+    <div className="auth-container">
+      <div className="auth-card">
+        
+        {/* Logo / Icono */}
+        <div className="brand-logo">📽️</div>
+        
+        <h1 className="auth-title">Bienvenido</h1>
+        <p className="auth-subtitle">Ingresa tus credenciales para continuar</p>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-          <Box component="form" onSubmit={handleLogin} noValidate>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Correo Electrónico"
-              name="email"
-              autoComplete="email"
-              autoFocus
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label className="form-label">Correo Electrónico</label>
+            <input 
+              type="email" 
+              className="form-input"
+              placeholder="ejemplo@plms.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
+              autoComplete="username"
               required
-              fullWidth
-              name="password"
-              label="Contraseña"
-              type="password"
-              id="password"
-              autoComplete="current-password"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Contraseña</label>
+            <input 
+              type="password" 
+              className="form-input"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
             />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={loading}
-            >
-              {loading ? 'Ingresando...' : 'Entrar'}
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? (
+              <span>🔄 Conectando...</span>
+            ) : (
+              <span>Ingresar al Sistema 🚀</span>
+            )}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          ¿No tienes acceso?
+          <Link to="/register" className="auth-link">Regístrate aquí</Link>
+        </div>
+
+      </div>
+    </div>
   );
 };

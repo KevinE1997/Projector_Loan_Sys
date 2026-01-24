@@ -8,7 +8,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   async login(email: string, pass: string) {
     // 1. Find user
@@ -27,6 +27,10 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
-    };
+      role: user.role,
+      user: {
+        email: user.email
+      }
+    }
   }
 }
