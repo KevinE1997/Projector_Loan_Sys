@@ -2,9 +2,9 @@ name: PLMS Master Pipeline (PNPM + Nx)
 
 on:
   push:
-    branches: [ "main", "feature/*" ]
+    branches: ["main", "feature/*"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   AWS_REGION: us-east-1
@@ -26,21 +26,21 @@ jobs:
             path: apps/loan-service
           - service: inventory-service
             path: apps/inventory-service
-         
+
           # GRUPO 2: Los que están en la raíz
           - service: feedback-service
-            path: feedback-service 
+            path: feedback-service
           - service: notification-service
             path: notification-service
           - service: maintenance-service
             path: maintenance-service
-          - service: penalty-service  
+          - service: penalty-service
             path: penalty-service
           - service: dashboard-service
             path: dashboard-service
           - service: api-gateway
             path: api-gateway
-          - service: audit-service    
+          - service: audit-service
             path: audit-service
     steps:
       - name: Checkout code
@@ -58,15 +58,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'pnpm'
+          node-version: "18"
+          cache: "pnpm"
 
       # 3. INSTALAR DEPENDENCIAS (Usando tu pnpm-lock.yaml)
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
       # --- ETAPA DE CALIDAD (Nx + PNPM) ---
-      
+
       - name: Lint ${{ matrix.service }}
         run: npx nx lint ${{ matrix.service }}
 
@@ -86,15 +86,14 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-    
+
       - name: Debug File System
         run: |
           echo "Listando carpetas en apps/:"
           ls -F apps/
-          
+
           echo "Buscando Dockerfile en ${{ matrix.service }}:"
           ls -l apps/${{ matrix.service }}/Dockerfile || echo "NO ENCONTRADO"
-
 
       - name: Build and Push Docker Image
         env:
@@ -102,7 +101,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           REPO_NAME=plms-${{ matrix.service }}
-          
+
           docker build -t $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG -f ${{ matrix.path }}/Dockerfile .
           docker push $ECR_REGISTRY/$REPO_NAME:$IMAGE_TAG
 
@@ -125,7 +124,7 @@ jobs:
             export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
             export AWS_REGION=us-east-1
-            
+
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
@@ -167,7 +166,7 @@ jobs:
             export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
             export AWS_REGION=us-east-1
-            
+
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
             docker system prune -a -f
@@ -183,7 +182,7 @@ jobs:
             docker stop feedback-service || true
             docker rm feedback-service || true
             docker run -d --name feedback-service --restart always -p 3008:3000 --env-file .env $REGISTRY/plms-feedback-service:latest
-            
+
             # Maintenance
             docker pull $REGISTRY/plms-maintenance-service:latest
             docker stop maintenance-service || true
@@ -195,3 +194,66 @@ jobs:
             docker stop penalty-service || true
             docker rm penalty-service || true
             docker run -d --name penalty-service --restart always -p 3016:3000 --env-file .env $REGISTRY/plms-penalty-service:latest
+
+          # ------------------------------------------------------------------
+          # JOB 4: DESPLEGAR EN CUENTA 4 FRONTEND
+          # ------------------------------------------------------------------
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Bajar código
+      - name:  Checkout
+        uses: actions/checkout@v3
+
+      # 2. Preparar entorno
+      - name:  Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # 3. Instalar dependencias (Nx necesita esto)
+      - name:  Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      # 4. Construir el proyecto
+      - name:  Build Nx Project
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.API_URL }}
+
+      # 5. Copiar TODA la carpeta dist al servidor temporalmente
+      - name:  Copy dist to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/"
+          target: "/home/ubuntu/temp_deploy"
+
+      # 6. Mover los archivos a Nginx (La parte crítica para Nx)
+      - name:  Deploy to Nginx
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo " Iniciando despliegue..."
+
+            # 1. Limpiar carpeta de Nginx
+            sudo rm -rf /var/www/html/*
+
+            # 2. Mover archivos desde la subcarpeta de Nx a la raíz pública
+            # AQUÍ ESTÁ LA MAGIA: Buscamos dentro de dist/apps/client-app
+            sudo mv /home/ubuntu/temp_deploy/dist/apps/client-app/* /var/www/html/
+
+            # 3. Borrar carpeta temporal
+            rm -rf /home/ubuntu/temp_deploy
+
+            # 4. Reiniciar Nginx
+            sudo systemctl restart nginx
+
+            echo "✅ Despliegue completado con éxito"

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // URL de tu Gateway / Load Balancer en AWS
-const API_URL = 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api';
+const API_URL = import.meta.env.API_URL || 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api';
 
 export const authService = {
   
@@ -9,10 +9,8 @@ export const authService = {
   login: async (email: string, password: string) => {
     
     try {
-      // Limpiamos cualquier sesión previa por seguridad
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-
+      localStorage.clear();
+     
       const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password,
@@ -25,9 +23,18 @@ export const authService = {
       const token = response.data.token || response.data.access_token;
       const role = response.data.role || response.data.user?.role || 'user'; // 'user' por defecto si no viene nada
 
+      const userId = response.data.user?.id; 
+      const userEmail = response.data.user?.email;
+
+
+
       if (token) {
         localStorage.setItem('token', token);
-        localStorage.setItem('role', role); // <--- ¡IMPORTANTE! Guardamos el rol
+        localStorage.setItem('role', role); 
+
+        if(userId) localStorage.setItem('userId', userId);
+        if(userEmail) localStorage.setItem('userEmail', userEmail);
+
       } else {
         console.error("No se encontró el token en la respuesta:", response.data);
       }

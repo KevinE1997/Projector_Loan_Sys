@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { CreateProjectorDto, Projector } from '../../types/inventory.types';
 
-const API_URL = 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com'; 
+const API_URL = import.meta.env.API_URL || 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api';
 
 // Helper para el token
 const getAuthHeader = () => {

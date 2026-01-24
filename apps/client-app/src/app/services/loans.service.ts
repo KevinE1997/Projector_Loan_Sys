@@ -2,7 +2,7 @@ import axios from 'axios';
 import { CreateLoanDto } from '../../types/inventory.types';
 
 // La URL base (incluye /api/loans)
-const API_URL = 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api/loans';
+const API_URL = import.meta.env.API_URL || 'http://plms-gateway-alb-1194092981.us-east-1.elb.amazonaws.com/api';
 
 export const loansService = {
   // 1. Obtener todos los préstamos

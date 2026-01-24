@@ -84,11 +84,17 @@ export const InventoryPage = () => {
     };
 
     const handleRequestLoan = async (projectorId: string) => {
-        // NOTA: Idealmente, aquí usarías el ID del usuario logueado o un selector de usuarios
-        const userId = prompt("🆔 Ingrese el ID del usuario solicitante (Email o ID):");
-        if (!userId) return;
 
-        const days = prompt("📅 ¿Por cuántos días es el préstamo?", "1");
+
+        const storedUserId = localStorage.getItem('userId');
+        const storedUserEmail = localStorage.getItem('userEmail');
+
+       if (!storedUserId) {
+            alert("⚠️ Error de sesión: No se identifica al usuario. Por favor inicie sesión nuevamente.");
+            return;
+        }
+
+        const days = prompt(`Hola ${storedUserEmail?.split('@')[0]} 👋\n¿Por cuántos días necesitas el proyector?`, "1");
         if (!days) return;
 
         const startDate = new Date();
@@ -99,7 +105,7 @@ export const InventoryPage = () => {
             setLoading(true);
             await loansService.createLoan({
                 projectorId,
-                userId, // El backend debe resolver este ID
+                userId: storedUserId, // El backend debe resolver este ID
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
                 observations: "Préstamo solicitado desde Panel Web"
