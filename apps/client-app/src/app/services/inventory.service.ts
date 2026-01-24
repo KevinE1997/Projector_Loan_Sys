@@ -16,7 +16,7 @@ export const inventoryService = {
   getAllProjectors: async (): Promise<Projector[]> => {
     // Apuntamos a /api/inventory + /projectors (del controlador)
     const response = await axios.get<Projector[]>(
-      `${API_URL}/api/projectors`, 
+      `${API_URL}/projectors`, 
       getAuthHeader()
     );
     return response.data;
